@@ -1,0 +1,41 @@
+name: Update Excel File in Qualer
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Locate Changed Excel Files
+        id: changed-files
+        uses: tj-actions/changed-files@v35
+        with:
+          files: '**/*.xlsm'  # Adjust to match your Excel file paths
+
+      - name: Send to API
+        if: steps.changed-files.outputs.any_changed == 'true'
+        env:
+          API_URL: "https://jgiquality.qualer.com/Sop/SaveSopFile"
+          REQUEST_VERIFICATION_TOKEN: ${{ secrets.REQUEST_VERIFICATION_TOKEN }}  # Store in GitHub Secrets
+        run: |
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "Uploading $file"
+            curl -X POST "$API_URL" \
+              -H "accept: */*" \
+              -H "content-type: multipart/form-data" \
+              -H "origin: https://jgiquality.qualer.com" \
+              -H "referer: https://jgiquality.qualer.com/Sop/Sop?sopId=2351" \
+              -F "documents=@$file;type=application/vnd.ms-excel.sheet.macroEnabled.12" \
+              -F "sopId=2351" \
+              -F "__RequestVerificationToken=$REQUEST_VERIFICATION_TOKEN"
+          done
