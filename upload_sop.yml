@@ -1,0 +1,34 @@
+name: Upload Excel File to Qualer
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Locate Changed Excel Files
+        id: changed-files
+        uses: tj-actions/changed-files@v35
+        with:
+          files: '**/*.xlsm'  # Adjust for different Excel file extensions if needed
+
+      - name: Set Environment Variables
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          echo "MERGED_FILE=$(realpath ${{ steps.changed-files.outputs.all_changed_files }})" >> $GITHUB_ENV
+          echo "SOP_ID=2351" >> $GITHUB_ENV  # Customize for each repository
+
+      - name: Upload Excel File to Qualer
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: ./upload_sop.sh
+        env:
+          QUALER_EMAIL: ${{ secrets.QUALER_EMAIL }}
+          QUALER_PASSWORD: ${{ secrets.QUALER_PASSWORD }}
+          SOP_ID: $SOP_ID
