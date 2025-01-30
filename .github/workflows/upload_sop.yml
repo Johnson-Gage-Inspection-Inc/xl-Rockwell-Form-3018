@@ -45,7 +45,7 @@ jobs:
 
       - name: Upload Excel File to Qualer
         if: env.skip != 'true'
-        run: ./ci-scripts/upload_sop.sh
+        run: ./upload_sop.sh
         env:
           QUALER_EMAIL: ${{ secrets.QUALER_EMAIL }}
           QUALER_PASSWORD: ${{ secrets.QUALER_PASSWORD }}
