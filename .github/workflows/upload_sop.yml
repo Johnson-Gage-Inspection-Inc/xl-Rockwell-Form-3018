@@ -67,6 +67,14 @@ jobs:
           SOP_ID: 2351
           MERGED_FILE: ${{ env.MERGED_FILE }}
 
+      - name: Check Upload Status
+        if: env.skip != 'true'
+        run: |
+          if [ $? -ne 0 ]; then
+            echo "❌ Error: Upload to Qualer failed."
+            exit 1
+          fi
+
   create-release:
     runs-on: ubuntu-latest
 
