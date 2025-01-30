@@ -38,6 +38,7 @@ jobs:
         with:
           tag_name: ${{ env.date }}
           release_name: "Release ${{ env.date }}"
+          generate_release_notes: true
           body: "Automated release of Form 3018, Rockwell.xlsm on ${{ env.date }}."
           files: "Form_3018_Rockwell_${{ env.date }}.xlsm"
         env:
