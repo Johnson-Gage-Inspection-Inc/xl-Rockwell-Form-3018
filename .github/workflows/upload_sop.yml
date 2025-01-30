@@ -66,3 +66,49 @@ jobs:
           QUALER_PASSWORD: ${{ secrets.QUALER_PASSWORD }}
           SOP_ID: 2351
           MERGED_FILE: ${{ env.MERGED_FILE }}
+
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get Commit Hash
+        id: commit_hash
+        run: echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Get Current Date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Find the Excel File
+        id: find_file
+        run: |
+          FILE=$(git ls-files | grep -i 'Form 3018, Rockwell.xlsm' | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "❌ Error: Form 3018, Rockwell.xlsm not found."
+            exit 1
+          fi
+          echo "FOUND_FILE=$FILE" >> $GITHUB_ENV
+
+      - name: Rename File with Date Suffix
+        run: |
+          NEW_NAME="Form_3018_Rockwell_${{ env.date }}.xlsm"
+          mv "$FOUND_FILE" "$NEW_NAME"
+          echo "RENAMED_FILE=$NEW_NAME" >> $GITHUB_ENV
+
+      - name: Get Latest Commit Message
+        id: commit_message
+        run: echo "commit_msg=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
+
+      - name: Create GitHub Release with Auto-Generated Notes
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.commit_hash }}
+          generate_release_notes: true
+          body: "${{ env.commit_msg }}"
+          files: "${{ env.RENAMED_FILE }}"
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
