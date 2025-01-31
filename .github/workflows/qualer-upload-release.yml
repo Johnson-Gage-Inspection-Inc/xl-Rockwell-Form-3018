@@ -72,6 +72,21 @@ jobs:
           mv "${{ env.MERGED_FILE }}" "$NEW_NAME"
           echo "RENAMED_FILE=$NEW_NAME" >> $GITHUB_ENV
 
+      - name: Get PR Description
+        id: pr_body
+        run: |
+          PR_NUMBER=$(gh pr list --base main --state merged --limit 1 --json number --jq '.[0].number')
+          if [[ -z "$PR_NUMBER" ]]; then
+            echo "❌ No merged PR found for this commit. Falling back to commit message."
+            echo "pr_body=" >> $GITHUB_ENV
+          else
+            PR_BODY=$(gh pr view "$PR_NUMBER" --json body --jq '.body')
+            echo "✅ PR Body Retrieved."
+            echo "pr_body=$PR_BODY" >> $GITHUB_ENV
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Get Latest Commit Message
         id: commit_message
         run: echo "commit_msg=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
@@ -81,7 +96,7 @@ jobs:
         with:
           tag_name: ${{ env.commit_hash }}
           generate_release_notes: true
-          body: "${{ env.commit_msg }}"
+          body: "${{ env.pr_body || env.commit_msg }}"
           files: "${{ env.RENAMED_FILE }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
