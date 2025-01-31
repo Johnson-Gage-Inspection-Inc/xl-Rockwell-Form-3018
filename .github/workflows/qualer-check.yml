@@ -51,6 +51,9 @@ jobs:
           path: ci-scripts
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Ensure `validate_upload.sh` is Executable
+        run: chmod +x ./ci-scripts/validate_upload.sh
+
       - name: Run Upload Validation
         if: env.skip != 'true'
         run: ./ci-scripts/validate_upload.sh  # This script should validate login & connection
