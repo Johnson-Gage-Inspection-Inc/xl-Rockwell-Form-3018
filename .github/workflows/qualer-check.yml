@@ -13,9 +13,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Fetch All Branches (Ensure origin/main Exists)
+        run: |
+          git fetch --prune --unshallow || git fetch --prune
+
       - name: Check for Excel file changes
         id: check
         run: |
+          # Ensure 'origin/main' exists before diffing
+          if ! git rev-parse --verify origin/main >/dev/null 2>&1; then
+            echo "❌ Error: origin/main not found. Fetching latest..."
+            git fetch origin main
+          fi
+
           if git diff --quiet origin/main HEAD -- '*.xlsm'; then
             echo "✅ No Excel files changed. Skipping validation."
             echo "skip=true" >> $GITHUB_ENV
