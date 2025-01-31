@@ -13,6 +13,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: List Modified Files (Debug)
+        run: git diff --name-only HEAD^ HEAD
+
       - name: Check for Excel File Changes
         id: check
         run: |
@@ -41,14 +44,33 @@ jobs:
           path: ci-scripts
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Ensure `upload_sop.sh` is Executable
+        if: env.skip != 'true'
+        run: chmod +x ./ci-scripts/upload_sop.sh
+
+      - name: Get Commit Hash
+        id: commit_hash
+        run: echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Get Commit Author
+        id: commit_author
+        run: |
+          author_name=$(git log -1 --pretty=format:'%an')
+          echo "author_name=$author_name" >> $GITHUB_ENV
+
       - name: Run Upload Script
         if: env.skip != 'true'
         run: ./ci-scripts/upload_sop.sh
         env:
           QUALER_EMAIL: ${{ secrets.QUALER_EMAIL }}
           QUALER_PASSWORD: ${{ secrets.QUALER_PASSWORD }}
-          SOP_ID: 2351
+          SOP_ID: ${{ env.SOP_ID }}
           MERGED_FILE: ${{ env.MERGED_FILE }}
+          COMMIT_HASH: ${{ env.commit_hash }}
+          AUTHOR_NAME: ${{ env.author_name }}
+          DOC_ID: ${{ env.DOC_ID }}
+          DOC_TITLE: ${{ env.DOC_TITLE }}
+          DOC_DETAILS: ${{ env.DOC_DETAILS }}
 
   create-release:
     runs-on: ubuntu-latest
@@ -57,10 +79,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
-      - name: Get Commit Hash
-        id: commit_hash
-        run: echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Get Current Date
         id: date
@@ -75,12 +93,15 @@ jobs:
       - name: Get PR Description
         id: pr_body
         run: |
-          PR_NUMBER=$(gh pr list --base main --state merged --limit 1 --json number --jq '.[0].number')
+          PR_NUMBER=$(gh pr list --base main --state merged --limit 1 --json number --jq '.[0].number' || echo "")
           if [[ -z "$PR_NUMBER" ]]; then
             echo "❌ No merged PR found for this commit. Falling back to commit message."
             echo "pr_body=" >> $GITHUB_ENV
           else
-            PR_BODY=$(gh pr view "$PR_NUMBER" --json body --jq '.body')
+            PR_BODY=$(gh pr view "$PR_NUMBER" --json body --jq '.body' || echo "")
+            if [[ -z "$PR_BODY" ]]; then
+              echo "⚠️ PR found, but no description available. Using commit message."
+            fi
             echo "✅ PR Body Retrieved."
             echo "pr_body=$PR_BODY" >> $GITHUB_ENV
           fi

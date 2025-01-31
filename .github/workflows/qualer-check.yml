@@ -61,4 +61,7 @@ jobs:
           QUALER_EMAIL: ${{ secrets.QUALER_EMAIL }}
           QUALER_PASSWORD: ${{ secrets.QUALER_PASSWORD }}
           MERGED_FILE: ${{ env.MERGED_FILE }}
-          SOP_ID: 2351
+          SOP_ID: ${{ env.SOP_ID }}
+          DOC_ID: ${{ env.DOC_ID }}
+          DOC_TITLE: ${{ env.DOC_TITLE }}
+          DOC_DETAILS: ${{ env.DOC_DETAILS }}
