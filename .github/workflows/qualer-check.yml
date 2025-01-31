@@ -1,0 +1,50 @@
+name: Qualer Pre-Merge Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Check for Excel file changes
+        id: check
+        run: |
+          if git diff --quiet origin/main HEAD -- '*.xlsm'; then
+            echo "✅ No Excel files changed. Skipping validation."
+            echo "skip=true" >> $GITHUB_ENV
+            exit 0
+          fi
+
+      - name: Ensure Only One Excel File is Changed
+        if: env.skip != 'true'
+        run: |
+          FILE_COUNT=$(git diff --name-only origin/main HEAD -- '*.xlsm' | wc -l)
+          if [ "$FILE_COUNT" -ne 1 ]; then
+            echo "❌ More than one Excel file changed. PR must contain only one Excel update."
+            exit 1
+          fi
+          FILE_PATH=$(git diff --name-only origin/main HEAD -- '*.xlsm')
+          echo "MERGED_FILE=$FILE_PATH" >> $GITHUB_ENV
+
+      - name: Checkout `ci-scripts` Repository
+        if: env.skip != 'true'
+        uses: actions/checkout@v3
+        with:
+          repository: Johnson-Gage-Inspection-Inc/ci-scripts
+          path: ci-scripts
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Upload Validation
+        if: env.skip != 'true'
+        run: ./ci-scripts/validate_upload.sh  # This script should validate login & connection
+        env:
+          QUALER_EMAIL: ${{ secrets.QUALER_EMAIL }}
+          QUALER_PASSWORD: ${{ secrets.QUALER_PASSWORD }}
+          MERGED_FILE: ${{ env.MERGED_FILE }}
